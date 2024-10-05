@@ -1,0 +1,6 @@
+@TrasanctionUpload.API_HostAddress = http://localhost:5264
+
+GET {{TrasanctionUpload.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
