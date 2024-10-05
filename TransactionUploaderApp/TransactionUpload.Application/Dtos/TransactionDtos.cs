@@ -13,5 +13,6 @@ namespace TransactionUpload.Application.Dtos
         public decimal Amount { get; set; }
         public string CurrencyCode { get; set; }
         public string Status { get; set; }
+        public DateTime TransactionDate { get; set; }
     }
 }

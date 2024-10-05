@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using TransactionUpload.Application.Dtos;
 using TransactionUpload.Application.Interface;
 using TrasanctionUpload.Domain.Interface;
@@ -23,11 +24,11 @@ namespace TransactionUpload.Application.Service
             List<TransactionDtos> transactionDtos=new List<TransactionDtos>();
             if (extension == ".csv")
             {
-                transactionDtos = ParseCsv(streamReader);
+                transactionDtos = ExtractCsv(streamReader);
             }
             else if (extension == ".xml")
             {
-                // transactionDtos = ParseXml(stream);
+                 transactionDtos = ExtractXml(streamReader);
             }
             else
                 transactionDtos = null;
@@ -45,7 +46,7 @@ namespace TransactionUpload.Application.Service
             // return await Task.CompletedTask;
         }
 
-        private List<TransactionDtos> ParseCsv(StreamReader stream)
+        private List<TransactionDtos> ExtractCsv(StreamReader stream)
         {
             var transactions = new List<TransactionDtos>();
 
@@ -76,6 +77,40 @@ namespace TransactionUpload.Application.Service
 
             return transactions;
         }
+        private List<TransactionDtos> ExtractXml(StreamReader stream)
+        {
+            var transactions = new List<TransactionDtos>();
+
+            var xdoc = XDocument.Load(stream);
+
+            // Loop through each "Transaction" element in the XML
+            foreach (var element in xdoc.Descendants("Transactions"))
+            {
+                try
+                {
+                    
+                    var transaction = new TransactionDtos
+                    {
+                        TransactionId = element.Attribute("Transaction id")?.Value, 
+                        TransactionDate  = DateTime.Parse(element.Element("TransactionDate")?.Value ?? throw new FormatException("TransactionDate is missing.")),
+                        Amount = decimal.Parse(element.Element("PaymentDetails")?.Element("Amount")?.Value ?? throw new FormatException("Amount is missing.")),
+                        CurrencyCode = element.Element("PaymentDetails")?.Element("CurrencyCode")?.Value ?? throw new FormatException("CurrencyCode is missing."),
+                        Status = element.Element("Status")?.Value ?? throw new FormatException("Status is missing.")
+                    };
+
+                    transactions.Add(transaction);
+                }
+                catch (Exception ex)
+                {
+                    throw new FormatException($"Error parsing XML: {ex.Message}");
+                }
+            }
+
+            return transactions;
+        }
+
+
+
 
     }
 }
