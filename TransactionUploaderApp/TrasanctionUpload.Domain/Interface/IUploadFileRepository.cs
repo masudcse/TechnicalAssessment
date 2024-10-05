@@ -9,6 +9,6 @@ namespace TrasanctionUpload.Domain.Interface
 {
     public interface IUploadFileRepository
     {
-        public Task FileProcess(Transaction transaction);
+        public Task FileProcess(List<Transaction> transaction);
     }
 }

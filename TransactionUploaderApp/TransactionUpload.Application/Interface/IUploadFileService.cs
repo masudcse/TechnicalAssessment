@@ -9,6 +9,6 @@ namespace TransactionUpload.Application.Interface
 {
     public interface IUploadFileService
     {
-        public Task FileProcess(TransactionDtos transactionDtos);
+        public Task FileProcess(StreamReader streamReader,string extension);
     }
 }

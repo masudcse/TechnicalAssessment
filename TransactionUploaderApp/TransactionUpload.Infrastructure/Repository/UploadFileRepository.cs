@@ -10,9 +10,15 @@ namespace TransactionUpload.Infrastructure.Repository
 {
     public class UploadFileRepository : IUploadFileRepository
     {
-        public Task FileProcess(Transaction transaction)
+        private readonly TransactionDbContext _transactionDbContext;
+        public UploadFileRepository(TransactionDbContext transactionDbContext)
         {
-            throw new NotImplementedException();
+            _transactionDbContext = transactionDbContext;
+        }
+        public async Task FileProcess(List<Transaction> transaction)
+        {
+            await _transactionDbContext.Transactions.AddRangeAsync(transaction);
+            await _transactionDbContext.SaveChangesAsync();
         }
     }
 }
