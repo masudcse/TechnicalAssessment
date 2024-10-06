@@ -9,6 +9,7 @@ using TransactionUpload.Application.Dtos;
 using TransactionUpload.Application.Interface;
 using TrasanctionUpload.Domain.Interface;
 using TrasanctionUpload.Domain.Models;
+using static TrasanctionUpload.Domain.Enum.TransactionStatus;
 
 namespace TransactionUpload.Application.Service
 {
@@ -21,14 +22,14 @@ namespace TransactionUpload.Application.Service
         }
         public async Task FileProcess(StreamReader streamReader, string extension)
         {
-            List<TransactionDtos> transactionDtos=new List<TransactionDtos>();
+            List<TransactionDtos> transactionDtos = new List<TransactionDtos>();
             if (extension == ".csv")
             {
                 transactionDtos = ExtractCsv(streamReader);
             }
             else if (extension == ".xml")
             {
-                 transactionDtos = ExtractXml(streamReader);
+                transactionDtos = ExtractXml(streamReader);
             }
             else
                 transactionDtos = null;
@@ -38,7 +39,7 @@ namespace TransactionUpload.Application.Service
                 TransactionId = dto.TransactionId,
                 AccountNo = dto.AccountNo,
                 Amount = dto.Amount,
-                Status = dto.Status,
+                Status =MapStatusToEnum(dto.Status).ToString(),
                 CurrencyCode = dto.CurrencyCode
             }).ToList();
 
@@ -88,11 +89,11 @@ namespace TransactionUpload.Application.Service
             {
                 try
                 {
-                    
+
                     var transaction = new TransactionDtos
                     {
-                        TransactionId = element.Attribute("Transaction id")?.Value, 
-                        TransactionDate  = DateTime.Parse(element.Element("TransactionDate")?.Value ?? throw new FormatException("TransactionDate is missing.")),
+                        TransactionId = element.Attribute("Transaction id")?.Value,
+                        TransactionDate = DateTime.Parse(element.Element("TransactionDate")?.Value ?? throw new FormatException("TransactionDate is missing.")),
                         Amount = decimal.Parse(element.Element("PaymentDetails")?.Element("Amount")?.Value ?? throw new FormatException("Amount is missing.")),
                         CurrencyCode = element.Element("PaymentDetails")?.Element("CurrencyCode")?.Value ?? throw new FormatException("CurrencyCode is missing."),
                         Status = element.Element("Status")?.Value ?? throw new FormatException("Status is missing.")
@@ -109,7 +110,18 @@ namespace TransactionUpload.Application.Service
             return transactions;
         }
 
-
+        private PaymentStatus MapStatusToEnum(string status)
+        {
+            return status switch
+            {
+                "Approved" => PaymentStatus.A,
+                "Done" => PaymentStatus.D,
+                "Finished" => PaymentStatus.D,
+                "Failed" => PaymentStatus.R,
+                "Rejected" => PaymentStatus.R,
+                _ => throw new ArgumentException($"Invalid status value: {status}")
+            };
+        }
 
 
     }
