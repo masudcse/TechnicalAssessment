@@ -21,22 +21,37 @@ namespace TransactionUpload.Application.Service
         {
             _uploadFileRepository = uploadFileRepository;
         }
-        public async Task FileProcess(StreamReader streamReader, string extension)
+        public async Task<List<InvalidDataDTOs>> FileProcess(StreamReader streamReader, string extension)
         {
             List<TransactionDtos> transactionDtos = new List<TransactionDtos>();
+            List<InvalidDataDTOs> invalidDataDTOs = new List<InvalidDataDTOs>();
             if (extension == ".csv")
             {
-                ExtractResult extractResult=ExtractCsv(streamReader);
+                ExtractResult extractResult = ExtractCsv(streamReader);
                 transactionDtos = extractResult.ValidTransactions;
+                invalidDataDTOs = extractResult.InvalidTransactions;
             }
             else if (extension == ".xml")
             {
-                ExtractResult extractResult=ExtractXml(streamReader);
+                ExtractResult extractResult = ExtractXml(streamReader);
                 transactionDtos = extractResult.ValidTransactions;
+                invalidDataDTOs = extractResult.InvalidTransactions;
             }
-            else
-                transactionDtos = null;
-
+            if (invalidDataDTOs.Any())
+            {
+                List<InvalidData> invalidData = invalidDataDTOs.Select(x => new InvalidData
+                {
+                    TransactionId = x.TransactionId,
+                    AccountNo = x.AccountNo,
+                    Amount = x.Amount,
+                    TransactionDate = x.TransactionDate,
+                    CurrencyCode = x.CurrencyCode,
+                    Status = x.Status
+                }
+                ).ToList();
+               await _uploadFileRepository.InsertInvalidData(invalidData);
+                return invalidDataDTOs;
+            }
             List<Transaction> transactionData = transactionDtos.Select(dto => new Transaction
             {
                 TransactionId = dto.TransactionId,
@@ -47,9 +62,8 @@ namespace TransactionUpload.Application.Service
             }).ToList();
 
             await _uploadFileRepository.FileProcess(transactionData);
-            
+            return invalidDataDTOs;
         }
-
         private ExtractResult ExtractCsv(StreamReader stream)
         {
             var result = new ExtractResult();
@@ -100,13 +114,13 @@ namespace TransactionUpload.Application.Service
                     };
                     result.InvalidTransactions.Add(invalidData);
                 }
-                
+
             }
             return result;
         }
         private ExtractResult ExtractXml(StreamReader stream)
         {
-           ExtractResult result = new ExtractResult();
+            ExtractResult result = new ExtractResult();
 
             var xdoc = XDocument.Load(stream);
 
@@ -147,7 +161,6 @@ namespace TransactionUpload.Application.Service
 
             return result;
         }
-
         private PaymentStatus MapStatusToEnum(string status)
         {
             return status switch

@@ -20,5 +20,11 @@ namespace TransactionUpload.Infrastructure.Repository
             await _transactionDbContext.Transactions.AddRangeAsync(transaction);
             await _transactionDbContext.SaveChangesAsync();
         }
+
+        public async Task InsertInvalidData(List<InvalidData> invalidData)
+        {
+            await _transactionDbContext.InvalidDatas.AddRangeAsync(invalidData);
+            await _transactionDbContext.SaveChangesAsync();
+        }
     }
 }

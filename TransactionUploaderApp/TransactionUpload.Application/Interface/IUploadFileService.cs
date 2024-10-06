@@ -9,6 +9,6 @@ namespace TransactionUpload.Application.Interface
 {
     public interface IUploadFileService
     {
-        public Task FileProcess(StreamReader streamReader,string extension);
+        public Task<List<InvalidDataDTOs>> FileProcess(StreamReader streamReader,string extension);
     }
 }

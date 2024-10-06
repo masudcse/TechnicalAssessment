@@ -14,6 +14,7 @@ namespace TransactionUpload.Infrastructure
         }
 
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<InvalidData>  InvalidDatas { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

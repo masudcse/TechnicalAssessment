@@ -28,19 +28,12 @@ namespace TrasanctionUpload.API.Controllers
             }
 
             using var stream = new StreamReader(file.OpenReadStream());
-            await _uploadFileService.FileProcess(stream,extension);
-            
+            var invalidData = await _uploadFileService.FileProcess(stream, extension);
+            if (invalidData.Any())
+            {
+                return BadRequest(new { message = "Invalid data found in the file.", invalidData = invalidData });
+            }
 
-           
-            //else
-            //{
-            //    return BadRequest("Unsupported file format");
-            //}
-
-            //if (transactions == null || !transactions.Any())
-            //{
-            //    return BadRequest("No valid transactions found.");
-            //}
             return Ok("File processed successfully");
         }
 

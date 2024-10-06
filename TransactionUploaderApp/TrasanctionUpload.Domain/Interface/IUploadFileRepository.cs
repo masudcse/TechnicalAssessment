@@ -10,5 +10,6 @@ namespace TrasanctionUpload.Domain.Interface
     public interface IUploadFileRepository
     {
         public Task FileProcess(List<Transaction> transaction);
+        Task InsertInvalidData(List<InvalidData> invalidData);
     }
 }
