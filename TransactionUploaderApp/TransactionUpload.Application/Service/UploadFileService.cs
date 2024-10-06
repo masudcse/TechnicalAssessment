@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using TransactionUpload.Application.Dtos;
 using TransactionUpload.Application.Interface;
+using TransactionUpload.Application.Wrapper;
 using TrasanctionUpload.Domain.Interface;
 using TrasanctionUpload.Domain.Models;
 using static TrasanctionUpload.Domain.Enum.TransactionStatus;
@@ -25,11 +26,13 @@ namespace TransactionUpload.Application.Service
             List<TransactionDtos> transactionDtos = new List<TransactionDtos>();
             if (extension == ".csv")
             {
-                transactionDtos = ExtractCsv(streamReader);
+                ExtractResult extractResult=ExtractCsv(streamReader);
+                transactionDtos = extractResult.ValidTransactions;
             }
             else if (extension == ".xml")
             {
-                transactionDtos = ExtractXml(streamReader);
+                ExtractResult extractResult=ExtractXml(streamReader);
+                transactionDtos = extractResult.ValidTransactions;
             }
             else
                 transactionDtos = null;
@@ -39,48 +42,71 @@ namespace TransactionUpload.Application.Service
                 TransactionId = dto.TransactionId,
                 AccountNo = dto.AccountNo,
                 Amount = dto.Amount,
-                Status =MapStatusToEnum(dto.Status).ToString(),
+                Status = MapStatusToEnum(dto.Status).ToString(),
                 CurrencyCode = dto.CurrencyCode
             }).ToList();
 
             await _uploadFileRepository.FileProcess(transactionData);
-            // return await Task.CompletedTask;
+            
         }
 
-        private List<TransactionDtos> ExtractCsv(StreamReader stream)
+        private ExtractResult ExtractCsv(StreamReader stream)
         {
-            var transactions = new List<TransactionDtos>();
-
-            // Read and skip the header line if necessary
+            var result = new ExtractResult();
             stream.ReadLine();
-
             string line;
             while ((line = stream.ReadLine()) != null)
             {
-                var values = line.Split(',');
-
-                if (values.Length != 4)
+                try
                 {
-                    // Add validation logic here, if the format is incorrect
-                    throw new FormatException("CSV format is incorrect.");
+                    var values = line.Split(',');
+
+                    if (values.Length != 4)
+                    {
+                        // Add validation logic here, if the format is incorrect
+                        var invalidData = new InvalidDataDTOs
+                        {
+                            TransactionId = values[0],
+                            AccountNo = values[1], // Parse the Id
+                            Amount = decimal.Parse(values[2]), // Parse the Amount
+                            CurrencyCode = values[3], // CurrencyCode
+                            Status = values[4]
+
+                        };
+                        result.InvalidTransactions.Add(invalidData);
+                        continue;
+                    }
+
+                    var transaction = new TransactionDtos
+                    {
+                        TransactionId = values[0],
+                        AccountNo = values[1], // Parse the Id
+                        Amount = decimal.Parse(values[2]), // Parse the Amount
+                        CurrencyCode = values[3], // CurrencyCode
+                        Status = values[4] // Status (You can also map status to a unified format)
+                    };
+
+                    result.ValidTransactions.Add(transaction);
                 }
-
-                var transaction = new TransactionDtos
+                catch (Exception e)
                 {
-                    TransactionId = values[0], // Parse the Id
-                    Amount = decimal.Parse(values[1]), // Parse the Amount
-                    CurrencyCode = values[2], // CurrencyCode
-                    Status = values[3] // Status (You can also map status to a unified format)
-                };
-
-                transactions.Add(transaction);
+                    var invalidData = new InvalidDataDTOs
+                    {
+                        TransactionId = "Error",
+                        AccountNo = "Error",
+                        Amount = 0,
+                        CurrencyCode = "Error",
+                        Status = "Error"
+                    };
+                    result.InvalidTransactions.Add(invalidData);
+                }
+                
             }
-
-            return transactions;
+            return result;
         }
-        private List<TransactionDtos> ExtractXml(StreamReader stream)
+        private ExtractResult ExtractXml(StreamReader stream)
         {
-            var transactions = new List<TransactionDtos>();
+           ExtractResult result = new ExtractResult();
 
             var xdoc = XDocument.Load(stream);
 
@@ -99,15 +125,27 @@ namespace TransactionUpload.Application.Service
                         Status = element.Element("Status")?.Value ?? throw new FormatException("Status is missing.")
                     };
 
-                    transactions.Add(transaction);
+                    result.ValidTransactions.Add(transaction);
                 }
                 catch (Exception ex)
                 {
-                    throw new FormatException($"Error parsing XML: {ex.Message}");
+                    var invalidTransaction = new InvalidDataDTOs
+                    {
+                        TransactionId = element.Attribute("id")?.Value ?? "Unknown",
+                        AccountNo = element.Element("PaymentDetails")?.Element("AccountNo")?.Value ?? "Unknown",
+                        Amount = element.Element("PaymentDetails")?.Element("Amount") != null
+                    ? decimal.TryParse(element.Element("PaymentDetails")?.Element("Amount")?.Value, out var amount)
+                        ? amount
+                        : 0
+                    : 0,
+                        CurrencyCode = element.Element("PaymentDetails")?.Element("CurrencyCode")?.Value ?? "Unknown",
+                        Status = element.Element("Status")?.Value ?? "Unknown"
+                    };
+                    result.InvalidTransactions.Add(invalidTransaction);
                 }
             }
 
-            return transactions;
+            return result;
         }
 
         private PaymentStatus MapStatusToEnum(string status)
