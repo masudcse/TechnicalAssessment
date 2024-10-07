@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using TransactionUpload.Application.Interface;
+using TransactionUpload.Application.Service;
 using TransactionUpload.Infrastructure;
+using TransactionUpload.Infrastructure.Repository;
+using TrasanctionUpload.Domain.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +15,9 @@ builder.Services.AddDbContext<TransactionDbContext>(options =>
     options.UseSqlServer(connectionSring)
     );
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddTransient<IUploadFileService, UploadFileService>();
+builder.Services.AddTransient<IUploadFileRepository,UploadFileRepository>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

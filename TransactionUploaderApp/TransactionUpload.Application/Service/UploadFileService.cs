@@ -58,6 +58,7 @@ namespace TransactionUpload.Application.Service
                 AccountNo = dto.AccountNo,
                 Amount = dto.Amount,
                 Status = MapStatusToEnum(dto.Status).ToString(),
+                TransactionDate = dto.TransactionDate,
                 CurrencyCode = dto.CurrencyCode
             }).ToList();
 
@@ -71,9 +72,10 @@ namespace TransactionUpload.Application.Service
             string line;
             while ((line = stream.ReadLine()) != null)
             {
+                string[] values = new string[0];
                 try
                 {
-                    var values = line.Split(',');
+                   values  = line.Split(',');
 
                     if (values.Length != 4)
                     {
@@ -82,9 +84,10 @@ namespace TransactionUpload.Application.Service
                         {
                             TransactionId = values[0],
                             AccountNo = values[1], // Parse the Id
-                            Amount = decimal.Parse(values[2]), // Parse the Amount
-                            CurrencyCode = values[3], // CurrencyCode
-                            Status = values[4]
+                            Amount = values[2], // Parse the Amount
+                            CurrencyCode = values[3],// CurrencyCode
+                            TransactionDate = values[4],
+                            Status = values[5]
 
                         };
                         result.InvalidTransactions.Add(invalidData);
@@ -97,6 +100,7 @@ namespace TransactionUpload.Application.Service
                         AccountNo = values[1], // Parse the Id
                         Amount = decimal.Parse(values[2]), // Parse the Amount
                         CurrencyCode = values[3], // CurrencyCode
+                        TransactionDate=DateTime.Parse(values[4]),
                         Status = values[4] // Status (You can also map status to a unified format)
                     };
 
@@ -106,11 +110,12 @@ namespace TransactionUpload.Application.Service
                 {
                     var invalidData = new InvalidDataDTOs
                     {
-                        TransactionId = "Error",
-                        AccountNo = "Error",
-                        Amount = 0,
-                        CurrencyCode = "Error",
-                        Status = "Error"
+                        TransactionId = values[0],
+                        AccountNo = values[1],
+                        Amount = values[2],
+                        CurrencyCode = values[3],
+                        TransactionDate = values[4],
+                        Status = values[5]
                     };
                     result.InvalidTransactions.Add(invalidData);
                 }
@@ -145,15 +150,12 @@ namespace TransactionUpload.Application.Service
                 {
                     var invalidTransaction = new InvalidDataDTOs
                     {
-                        TransactionId = element.Attribute("id")?.Value ?? "Unknown",
-                        AccountNo = element.Element("PaymentDetails")?.Element("AccountNo")?.Value ?? "Unknown",
-                        Amount = element.Element("PaymentDetails")?.Element("Amount") != null
-                    ? decimal.TryParse(element.Element("PaymentDetails")?.Element("Amount")?.Value, out var amount)
-                        ? amount
-                        : 0
-                    : 0,
-                        CurrencyCode = element.Element("PaymentDetails")?.Element("CurrencyCode")?.Value ?? "Unknown",
-                        Status = element.Element("Status")?.Value ?? "Unknown"
+                        TransactionId = element.Attribute("id").Value,
+                        TransactionDate = element.Attribute("TransactionDate").Value,
+                        AccountNo = element.Element("PaymentDetails").Element("AccountNo").Value,
+                        Amount = element.Element("PaymentDetails").Element("Amount").Value,
+                        CurrencyCode = element.Element("PaymentDetails").Element("CurrencyCode").Value,
+                        Status = element.Element("Status").Value
                     };
                     result.InvalidTransactions.Add(invalidTransaction);
                 }
