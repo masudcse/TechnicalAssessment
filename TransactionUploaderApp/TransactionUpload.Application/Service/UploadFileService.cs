@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -77,7 +78,7 @@ namespace TransactionUpload.Application.Service
                 {
                    values  = line.Split(',');
 
-                    if (values.Length != 4)
+                    if (values.Length != 6)
                     {
                         // Add validation logic here, if the format is incorrect
                         var invalidData = new InvalidDataDTOs
@@ -97,11 +98,11 @@ namespace TransactionUpload.Application.Service
                     var transaction = new TransactionDtos
                     {
                         TransactionId = values[0],
-                        AccountNo = values[1], // Parse the Id
+                        AccountNo =ParseScientificNotation(values[1]), // Parse the Id
                         Amount = decimal.Parse(values[2]), // Parse the Amount
                         CurrencyCode = values[3], // CurrencyCode
-                        TransactionDate=DateTime.Parse(values[4]),
-                        Status = values[4] // Status (You can also map status to a unified format)
+                        TransactionDate= DateTime.ParseExact(values[4].Trim(), "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture),
+                        Status = values[5] // Status (You can also map status to a unified format)
                     };
 
                     result.ValidTransactions.Add(transaction);
@@ -130,15 +131,16 @@ namespace TransactionUpload.Application.Service
             var xdoc = XDocument.Load(stream);
 
             // Loop through each "Transaction" element in the XML
-            foreach (var element in xdoc.Descendants("Transactions"))
+            foreach (var element in xdoc.Descendants("Transaction"))
             {
                 try
                 {
 
                     var transaction = new TransactionDtos
                     {
-                        TransactionId = element.Attribute("Transaction id")?.Value,
+                        TransactionId = element.Attribute("id")?.Value,
                         TransactionDate = DateTime.Parse(element.Element("TransactionDate")?.Value ?? throw new FormatException("TransactionDate is missing.")),
+                        AccountNo = element.Element("PaymentDetails")?.Element("AccountNo")?.Value ?? throw new FormatException("Account No is missing."),
                         Amount = decimal.Parse(element.Element("PaymentDetails")?.Element("Amount")?.Value ?? throw new FormatException("Amount is missing.")),
                         CurrencyCode = element.Element("PaymentDetails")?.Element("CurrencyCode")?.Value ?? throw new FormatException("CurrencyCode is missing."),
                         Status = element.Element("Status")?.Value ?? throw new FormatException("Status is missing.")
@@ -175,7 +177,13 @@ namespace TransactionUpload.Application.Service
                 _ => throw new ArgumentException($"Invalid status value: {status}")
             };
         }
-
-
+        private string ParseScientificNotation(string input)
+        {
+            if (double.TryParse(input, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+            {
+                return result.ToString("0", CultureInfo.InvariantCulture); // Convert to a plain string without scientific notation
+            }
+            return input; // Return original input if parsing fails
+        }
     }
 }
