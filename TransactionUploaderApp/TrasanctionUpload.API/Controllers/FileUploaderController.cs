@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TransactionUpload.Application.Interface;
 
 namespace TrasanctionUpload.API.Controllers
@@ -36,6 +37,26 @@ namespace TrasanctionUpload.API.Controllers
 
             return Ok("File processed successfully");
         }
+        [HttpGet("currency")]
+        public async Task<IActionResult> GetByCurrency(string currency)
+        {
+            var transactions = await _uploadFileService.GetByCurrency(currency);
+            return Ok(transactions);
+        }
 
+        [HttpGet("date-range")]
+        public async Task<IActionResult> GetByDateRange(DateTime startDate, DateTime endDate)
+        {
+            var transactions = await _uploadFileService.GetByDateRange(startDate, endDate);
+            return Ok(transactions);
+        }
+        [HttpGet("status")]
+        public async Task<IActionResult> GetByStatus(string status)
+        {
+            var transactions = await _uploadFileService.GetByStatus(status);
+            return Ok(transactions);
+           
+        }
     }
+
 }

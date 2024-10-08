@@ -50,7 +50,7 @@ namespace TransactionUpload.Application.Service
                     Status = x.Status
                 }
                 ).ToList();
-               await _uploadFileRepository.InsertInvalidData(invalidData);
+                await _uploadFileRepository.InsertInvalidData(invalidData);
                 return invalidDataDTOs;
             }
             List<Transaction> transactionData = transactionDtos.Select(dto => new Transaction
@@ -66,6 +66,43 @@ namespace TransactionUpload.Application.Service
             await _uploadFileRepository.FileProcess(transactionData);
             return invalidDataDTOs;
         }
+
+        public async Task<List<DisplayOutputDTOs>> GetByCurrency(string currency)
+        {
+            List<Transaction> transactionlist = await _uploadFileRepository.GetByCurrency(currency);
+            List<DisplayOutputDTOs> transactionDtos = transactionlist.Select(tran => new DisplayOutputDTOs
+            {
+                id = tran.TransactionId,
+                payment =$"{tran.Amount}  {tran.CurrencyCode}",
+                Status = tran.Status,
+            }).ToList();
+            return transactionDtos;
+        }
+
+        public async Task<List<DisplayOutputDTOs>> GetByDateRange(DateTime startDate, DateTime endDate)
+        {
+            List<Transaction> transactionlist = await _uploadFileRepository.GetByDateRange(startDate,endDate);
+            List<DisplayOutputDTOs> transactionDtos = transactionlist.Select(tran => new DisplayOutputDTOs
+            {
+                id = tran.TransactionId,
+                payment = $"{tran.Amount}  {tran.CurrencyCode}",
+                Status = tran.Status,
+            }).ToList();
+            return transactionDtos;
+        }
+
+        public async Task<List<DisplayOutputDTOs>> GetByStatus(string status)
+        {
+            List<Transaction> transactionlist = await _uploadFileRepository.GetByStatus(MapStatusToEnum(status).ToString());
+            List<DisplayOutputDTOs> transactionDtos = transactionlist.Select(tran => new DisplayOutputDTOs
+            {
+                id = tran.TransactionId,
+                payment = $"{tran.Amount}  {tran.CurrencyCode}",
+                Status = tran.Status,
+            }).ToList();
+            return transactionDtos;
+        }
+
         private ExtractResult ExtractCsv(StreamReader stream)
         {
             var result = new ExtractResult();
@@ -76,7 +113,7 @@ namespace TransactionUpload.Application.Service
                 string[] values = new string[0];
                 try
                 {
-                   values  = line.Split(',');
+                    values = line.Split(',');
 
                     if (values.Length != 6)
                     {
@@ -98,10 +135,10 @@ namespace TransactionUpload.Application.Service
                     var transaction = new TransactionDtos
                     {
                         TransactionId = values[0],
-                        AccountNo =ParseScientificNotation(values[1]), // Parse the Id
+                        AccountNo = ParseScientificNotation(values[1]), // Parse the Id
                         Amount = decimal.Parse(values[2]), // Parse the Amount
                         CurrencyCode = values[3], // CurrencyCode
-                        TransactionDate= DateTime.ParseExact(values[4].Trim(), "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture),
+                        TransactionDate = DateTime.ParseExact(values[4].Trim(), "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture),
                         Status = values[5] // Status (You can also map status to a unified format)
                     };
 
